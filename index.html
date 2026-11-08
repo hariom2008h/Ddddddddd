@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Downloader</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+    <h1 class="text-2xl font-bold text-center mb-2 text-rose-500">YouTube Downloader</h1>
+    <p class="text-xs text-gray-400 text-center mb-6">लिंक पेस्ट करें और डाउनलोड फॉर्मेट्स प्राप्त करें</p>
+
+    <div class="flex flex-col gap-3">
+      <input 
+        id="videoUrl" 
+        type="text" 
+        placeholder="https://youtube.com/watch?v=..." 
+        class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-rose-500 text-sm"
+      />
+      <button 
+        id="fetchBtn" 
+        onclick="getFormats()" 
+        class="w-full bg-rose-600 hover:bg-rose-700 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center"
+      >
+        गेट लिंक्स (Get Links)
+      </button>
+    </div>
+
+    <!-- स्टेटस / लोडर -->
+    <div id="status" class="mt-4 text-center text-sm text-gray-400 hidden"></div>
+
+    <!-- रिजल्ट कार्ड्स -->
+    <div id="results" class="mt-6 flex flex-col gap-2 max-h-72 overflow-y-auto pr-1"></div>
+  </div>
+
+  <script>
+    async function getFormats() {
+      const url = document.getElementById('videoUrl').value.trim();
+      const status = document.getElementById('status');
+      const results = document.getElementById('results');
+      const btn = document.getElementById('fetchBtn');
+
+      if (!url) {
+        alert('कृपया YouTube लिंक दर्ज करें');
+        return;
+      }
+
+      status.classList.remove('hidden');
+      status.innerText = 'लिंक लोड हो रहे हैं, कृपया प्रतीक्षा करें...';
+      results.innerHTML = '';
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+
+      try {
+        // आपकी Vercel API को कॉल करेगा
+        const res = await fetch(`/api/formats?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+
+        if (!data.success || !data.formats) {
+          throw new Error(data.error || 'फॉर्मेट लोड नहीं हो पाए');
+        }
+
+        status.classList.add('hidden');
+
+        data.formats.forEach(f => {
+          if (!f.download) return;
+
+          const item = document.createElement('div');
+          item.className = 'flex items-center justify-between p-3 bg-slate-900 border border-slate-700 rounded-xl';
+          item.innerHTML = `
+            <div>
+              <span class="font-semibold text-sm text-white">${f.label}</span>
+              <span class="text-xs text-gray-400 ml-1">(${f.size || f.kind})</span>
+            </div>
+            <a href="${f.download}" target="_blank" rel="noopener noreferrer" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium">
+              डाउनलोड
+            </a>
+          `;
+          results.appendChild(item);
+        });
+
+      } catch (err) {
+        status.classList.remove('hidden');
+        status.innerText = 'त्रुटि: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+      }
+    }
+  </script>
+</body>
+  </html>
+  
